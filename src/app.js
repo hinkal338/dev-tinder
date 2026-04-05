@@ -1,33 +1,30 @@
 const express = require('express');
-const { authAdmin, authUser } = require('./middlewares/auth.js');
+const connectDB = require('./config/database');
+const User = require('./models/user');
 
 const app = express();
 
-// // this will match all the HTTP method APIs
-// app.use("/", (req, res) => {
-//     res.send("Welcome to dev-tinder !!");
-// })
+app.post('/signup', async (req, res) => {
+    const userObj = {
+        firstName: "abc",
+        lastName: "d",
+        emailId: "abc.d@gmail.com",
+        password: "bsihaoijd",
+    };
+    const user = new User(userObj);
 
-
-// Middleware for authentication
-app.use("/admin", authAdmin);
-
-app.get("/admin/getData", (req, res) => {
-    res.send("Retrieved all data");
+    try {
+        await user.save();
+        res.send("User created successfully !!");
+    } catch (err) {
+        res.status(400).send("Error saving the user: " + err.message);
+    }
 });
-
-app.delete("/admin/deleteData", (req, res) => {
-    res.send("Deleted data");
-});
-
-app.get("/user/login", (req, res) => {
-    res.send("Logged in successfully");
-});
-
-app.use("/user", authUser, (req, res) => {
-    res.send("Retrieved user data");
-});
-
-app.listen(3000, () => {
-    console.log("server is listening on port 3000 ....");
+connectDB().then(() => {
+    console.log("Database connected successfully");
+    app.listen(3000, () => {
+        console.log("server is listening on port 3000 ....");
+    });
+}).catch((err) => {
+    console.log("Database not connected");
 });
