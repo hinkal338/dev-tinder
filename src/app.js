@@ -30,6 +30,36 @@ app.get('/user', async (req, res) => {
     }
 });
 
+app.delete("/user", async (req, res) => {
+    userId = req.body.id;
+    try {
+        const user = await User.findByIdAndDelete({ _id: userId });
+        res.send("User deleted successfully")
+    } catch {
+        res.status(400).send("Something went wrong !!");
+    }
+});
+
+app.patch("/user/:userId", async (req, res) => {
+    userId = req.params?.userId;
+    data = req.body;
+    try {
+        const ALLOWED_UPDATES = ["photoUrl", "about", "gender", "age", "skills"];
+        const isUpdateAllowed = Object.keys(data).every((k) =>
+            ALLOWED_UPDATES.includes(k)
+        );
+        if (!isUpdateAllowed) {
+            throw new Error("Update not allowed !!")
+        }
+        const user = await User.findByIdAndUpdate({ _id: userId }, data, {
+            runValidators: true
+        });
+        res.send("User updated successfully")
+    } catch (err) {
+        res.status(400).send("Update failed: " + err.message);
+    }
+});
+
 app.get('/feed', async (req, res) => {
     try {
         const users = await User.find();
