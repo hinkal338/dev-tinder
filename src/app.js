@@ -1,12 +1,15 @@
 const express = require('express');
 const connectDB = require('./config/database');
 const bcrypt = require('bcrypt');
+const cookieparser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
 const User = require('./models/user');
 const validateSignUpData = require('./utils/validation')
 
 const app = express();
 
 app.use(express.json());
+app.use(cookieparser());
 
 app.post('/signup', async (req, res) => {
     try {
@@ -45,11 +48,32 @@ app.post('/login', async (req, res) => {
         }
         const isValidPassword = await bcrypt.compare(password, user.password);
         if (isValidPassword) {
+            const token = jwt.sign({_id: user._id}, "DevTinder@1234");
+            res.cookie("token", token);
             res.send("Login successful");
         } else {
             throw new Error("Please enter valid credentials");
         }
     } catch (err) {
+        res.status(400).send("Error: " + err.message);
+    }
+});
+
+app.get('/profile', async(req, res) => {
+    try {
+        const {token} = req.cookies;
+        if(!token) {
+            throw new Error("Invalid credentials");
+        }
+        const decoded = jwt.verify(token, "DevTinder@1234");
+        const { _id} = decoded;
+        const user = await User.findById(_id);
+        if(!user){
+            throw new Error("User not found");
+        }
+        res.send(user);
+
+    }catch(err){
         res.status(400).send("Error: " + err.message);
     }
 });
