@@ -2,9 +2,9 @@ const express = require('express');
 const connectDB = require('./config/database');
 const bcrypt = require('bcrypt');
 const cookieparser = require('cookie-parser');
-const jwt = require('jsonwebtoken');
 const User = require('./models/user');
 const validateSignUpData = require('./utils/validation')
+const { userAuth } = require('./middlewares/auth')
 
 const app = express();
 
@@ -46,10 +46,10 @@ app.post('/login', async (req, res) => {
         if (!user) {
             throw new Error("Please enter valid credentials");
         }
-        const isValidPassword = await bcrypt.compare(password, user.password);
+        const isValidPassword = await user.validatePassword(password);
         if (isValidPassword) {
-            const token = jwt.sign({_id: user._id}, "DevTinder@1234");
-            res.cookie("token", token);
+            const token = await user.getJWT();
+            res.cookie("token", token, { expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) });
             res.send("Login successful");
         } else {
             throw new Error("Please enter valid credentials");
@@ -59,23 +59,24 @@ app.post('/login', async (req, res) => {
     }
 });
 
-app.get('/profile', async(req, res) => {
+app.get('/profile', userAuth, async (req, res) => {
     try {
-        const {token} = req.cookies;
-        if(!token) {
-            throw new Error("Invalid credentials");
-        }
-        const decoded = jwt.verify(token, "DevTinder@1234");
-        const { _id} = decoded;
-        const user = await User.findById(_id);
-        if(!user){
-            throw new Error("User not found");
-        }
+        const user = req.user;
         res.send(user);
 
-    }catch(err){
+    } catch (err) {
         res.status(400).send("Error: " + err.message);
     }
+});
+
+app.post('/sendConnectionRequest', userAuth, (req, res) => {
+    try {
+        const user = req.user;
+        res.send("Connection request sent successfully !!");
+    } catch {
+        res.status(400).send("Something went wrong");
+    }
+
 });
 
 app.get('/user', async (req, res) => {
