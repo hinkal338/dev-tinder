@@ -29,11 +29,6 @@ const userSchema = new Schema({
     password: {
         type: String,
         required: true, 
-        validate(value){
-            if(!validator.isStrongPassword(value)){
-                throw new Error("Please enter a strong password: " + value);
-            }
-        }
     },
     age: {
         type: Number,
