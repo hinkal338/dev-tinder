@@ -13,12 +13,13 @@ Dev Tinder APIs
 
 
 ## connectionRouter
-- POST - /request/send/:userId
-- POST - /request/ignore/:userId
-- POST - /request/accept/:requestId
-- POST - /request/reject/:requestId
+- POST - /request/send/:status/:userId
+- POST - /request/review/:status/:userId
+
 
 ## userRouter
 - GET - /user/requests
 - GET - /users/connections 
 - GET - /users/feed
+
+Status - interested/ ignored/ accepted/ rejected
