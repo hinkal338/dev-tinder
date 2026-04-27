@@ -1,6 +1,7 @@
 const express = require('express');
 const { userAuth } = require('../middlewares/auth');
 const ConnectionRequest = require('../models/connectionRequest');
+const User = require('../models/user');
 const userRouter = express.Router();
 
 const USER_SAFE_DATA = 'firstName lastName age gender about skills photoURL';
@@ -50,4 +51,44 @@ userRouter.get('/user/connections', userAuth, async (req, res) => {
     }
 });
 
+/** 
+Get the feed for the logged in user
+User should not see his own profile in the feed
+User should not see the profiles of the users who have accepted/ rejected his connection request
+User should not see the profiles of the users to whom he has interested/ ignored the connection request
+**/
+
+userRouter.get('/feed', userAuth, async (req, res) => {
+    try {
+        const loggedInUser = req.user;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        const connectionRequests = await ConnectionRequest.find({
+            $or: [
+                { fromUserId: loggedInUser._id },
+                { toUserId: loggedInUser._id }
+            ]
+        }).select('fromUserId toUserId');
+
+        const excludedUserIds = new Set();
+        connectionRequests.forEach(request => {
+            excludedUserIds.add(request.fromUserId.toString());
+            excludedUserIds.add(request.toUserId.toString());
+        });
+
+        const users = await User.find({
+            $and: [
+                { _id: { $ne: loggedInUser._id } },
+                { _id: { $nin: Array.from(excludedUserIds) } }
+            ]
+        }).select(USER_SAFE_DATA).skip(skip).limit(limit);
+        res.status(200).json({
+            message: "Feed retrieved successfully",
+            data: users
+        });
+    } catch (err) {
+        res.status(400).send(err.message);
+    }
+});
 module.exports = userRouter;
